@@ -1,0 +1,1249 @@
+CHAPTER
+4
+Intermediate SQL
+In this chapter, we continue our study of SQL. We consider more complex forms of
+SQL queries, view deﬁnition, transactions, integrity constraints, more details regarding
+SQL data deﬁnition, and authorization.
+4.1 Join Expressions
+In all of the example queries we used in Chapter 3 (except when we used set opera-
+tions), we combined information from multiple relations using the Cartesian product
+operator. In this section, we introduce a number of “join” operations that allow the
+programmer to write some queries in a more natural way and to express some queries
+that are diﬃcult to do with only the Cartesian product.
+ID
+ name
+ dept
+ name
+ tot
+ cred
+00128
+ Zhang
+ Comp. Sci.
+ 102
+12345
+ Shankar
+ Comp. Sci.
+ 32
+19991
+ Brandt
+ History
+ 80
+23121
+ Chavez
+ Finance
+ 110
+44553
+ Peltier
+ Physics
+ 56
+45678
+ Levy
+ Physics
+ 46
+54321
+ Williams
+ Comp. Sci.
+ 54
+55739
+ Sanchez
+ Music
+ 38
+70557
+ Snow
+ Physics
+ 0
+76543
+ Brown
+ Comp. Sci.
+ 58
+76653
+ Aoi
+ Elec. Eng.
+ 60
+98765
+ Bourikas
+ Elec. Eng.
+ 98
+98988
+ Tanaka
+ Biology
+ 120
+Figure 4.1 The student relation.
+125
+126 Chapter 4 Intermediate SQL
+ID
+ course
+ id
+ sec
+ id
+ semester
+ year
+ grade
+00128
+ CS-101
+ 1
+ Fall
+ 2017
+ A
+00128
+ CS-347
+ 1
+ Fall
+ 2017
+ A-
+12345
+ CS-101
+ 1
+ Fall
+ 2017
+ C
+12345
+ CS-190
+ 2
+ Spring
+ 2017
+ A
+12345
+ CS-315
+ 1
+ Spring
+ 2018
+ A
+12345
+ CS-347
+ 1
+ Fall
+ 2017
+ A
+19991
+ HIS-351
+ 1
+ Spring
+ 2018
+ B
+23121
+ FIN-201
+ 1
+ Spring
+ 2018
+ C+
+44553
+ PHY-101
+ 1
+ Fall
+ 2017
+ B-
+45678
+ CS-101
+ 1
+ Fall
+ 2017
+ F
+45678
+ CS-101
+ 1
+ Spring
+ 2018
+ B+
+45678
+ CS-319
+ 1
+ Spring
+ 2018
+ B
+54321
+ CS-101
+ 1
+ Fall
+ 2017
+ A-
+54321
+ CS-190
+ 2
+ Spring
+ 2017
+ B+
+55739
+ MU-199
+ 1
+ Spring
+ 2018
+ A-
+76543
+ CS-101
+ 1
+ Fall
+ 2017
+ A
+76543
+ CS-319
+ 2
+ Spring
+ 2018
+ A
+76653
+ EE-181
+ 1
+ Spring
+ 2017
+ C
+98765
+ CS-101
+ 1
+ Fall
+ 2017
+ C-
+98765
+ CS-315
+ 1
+ Spring
+ 2018
+ B
+98988
+ BIO-101
+ 1
+ Summer
+ 2017
+ A
+98988
+ BIO-301
+ 1
+ Summer
+ 2018
+ null
+Figure 4.2 The takes relation.
+All the examples used in this section involve the two relations student and takes,
+shown in Figure 4.1 and Figure 4.2, respectively. Observe that the attribute grade has
+a value null for the student with ID 98988, for the course BIO-301, section 1, taken in
+Summer 2018. The null value indicates that the grade has not been awarded yet.
+4.1.1 The Natural Join
+Consider the following SQL query, which computes for each student the set of courses
+a student has taken:
+select name, course
+ id
+from student, takes
+where student.ID = takes.ID;
+Note that this query outputs only students who have taken some course. Students who
+have not taken any course are not output.
+4.1 Join Expressions 127
+Note that in thestudent and takes table, the matching condition requiredstudent.ID
+to be equal to takes.ID. These are the only attributes in the two relations that have the
+same name. In fact, this is a common case; that is, the matching condition in thefrom
+clause most often requires all attributes with matching names to be equated.
+To make the life of anSQL programmer easier for this common case,SQL supports
+an operation called thenatural join, which we describe below. In fact,SQL supports sev-
+eral other ways in which information from two or more relations can bejoined together.
+We have already seen how a Cartesian product along with awhere clause predicate can
+be used to join information from multiple relations. Other ways of joining information
+from multiple relations are discussed in Section 4.1.2 through Section 4.1.4.
+The natural join operation operates on two relations and produces a relation as the
+result. Unlike the Cartesian product of two relations, which concatenates each tuple of
+the ﬁrst relation with every tuple of the second, natural join considers only those pairs
+of tuples with the same value on those attributes that appear in the schemas of both
+relations. So, going back to the example of the relations student and takes,c o m p u t i n g :
+student natural join takes
+considers only those pairs of tuples where both the tuple from student and the tuple
+from takes have the same value on the common attribute, ID.
+The resulting relation, shown in Figure 4.3, has only 22 tuples, the ones that give
+information about a student and a course that the student has actually taken. Notice
+that we do not repeat those attributes that appear in the schemas of both relations;
+rather they appear only once. Notice also the order in which the attributes are listed:
+ﬁrst the attributes common to the schemas of both relations, second those attributes
+unique to the schema of the ﬁrst relation, and ﬁnally, those attributes unique to the
+schema of the second relation.
+Earlier we wrote the query “For all students in the university who have taken some
+course, ﬁnd their names and the course ID of all courses they took” as:
+select name, course
+ id
+from student, takes
+where student.ID = takes.ID;
+This query can be written more concisely using the natural-join operation in SQL as:
+select name, course
+ id
+from student natural join takes;
+Both of the above queries generate the same result.1
+1For notational symmetry, SQL allows the Cartesian product, which we have denoted with a comma, to be denoted by
+the keywords cross join.T h u s ,“from student, takes” could be expressed equivalently as “from student cross join takes”.
+128 Chapter 4 Intermediate SQL
+ID
+ name
+ dept
+ name
+ tot
+ cred
+ course
+ id
+ sec
+ id
+ semester
+ year
+ grade
+00128
+ Zhang
+ Comp. Sci.
+ 102
+ CS-101
+ 1
+ Fall
+ 2017
+ A
+00128
+ Zhang
+ Comp. Sci.
+ 102
+ CS-347
+ 1
+ Fall
+ 2017
+ A-
+12345
+ Shankar
+ Comp. Sci.
+ 32
+ CS-101
+ 1
+ Fall
+ 2017
+ C
+12345
+ Shankar
+ Comp. Sci.
+ 32
+ CS-190
+ 2
+ Spring
+ 2017
+ A
+12345
+ Shankar
+ Comp. Sci.
+ 32
+ CS-315
+ 1
+ Spring
+ 2018
+ A
+12345
+ Shankar
+ Comp. Sci.
+ 32
+ CS-347
+ 1
+ Fall
+ 2017
+ A
+19991
+ Brandt
+ History
+ 80
+ HIS-351
+ 1
+ Spring
+ 2018
+ B
+23121
+ Chavez
+ Finance
+ 110
+ FIN-201
+ 1
+ Spring
+ 2018
+ C+
+44553
+ Peltier
+ Physics
+ 56
+ PHY-101
+ 1
+ Fall
+ 2017
+ B-
+45678
+ Levy
+ Physics
+ 46
+ CS-101
+ 1
+ Fall
+ 2017
+ F
+45678
+ Levy
+ Physics
+ 46
+ CS-101
+ 1
+ Spring
+ 2018
+ B+
+45678
+ Levy
+ Physics
+ 46
+ CS-319
+ 1
+ Spring
+ 2018
+ B
+54321
+ Williams
+ Comp. Sci.
+ 54
+ CS-101
+ 1
+ Fall
+ 2017
+ A-
+54321
+ Williams
+ Comp. Sci.
+ 54
+ CS-190
+ 2
+ Spring
+ 2017
+ B+
+55739
+ Sanchez
+ Music
+ 38
+ MU-199
+ 1
+ Spring
+ 2018
+ A-
+76543
+ Brown
+ Comp. Sci.
+ 58
+ CS-101
+ 1
+ Fall
+ 2017
+ A
+76543
+ Brown
+ Comp. Sci.
+ 58
+ CS-319
+ 2
+ Spring
+ 2018
+ A
+76653
+ Aoi
+ Elec. Eng.
+ 60
+ EE-181
+ 1
+ Spring
+ 2017
+ C
+98765
+ Bourikas
+ Elec. Eng.
+ 98
+ CS-101
+ 1
+ Fall
+ 2017
+ C-
+98765
+ Bourikas
+ Elec. Eng.
+ 98
+ CS-315
+ 1
+ Spring
+ 2018
+ B
+98988
+ Tanaka
+ Biology
+ 120
+ BIO-101
+ 1
+ Summer
+ 2017
+ A
+98988
+ Tanaka
+ Biology
+ 120
+ BIO-301
+ 1
+ Summer
+ 2018
+ null
+Figure 4.3 The natural join of thestudent relation with thetakes relation.
+The result of the natural join operation is a relation. Conceptually, expression “stu-
+dent natural join takes”i nt h efrom clause is replaced by the relation obtained by evalu-
+ating the natural join.2 The where and select clauses are then evaluated on this relation,
+as we saw in Section 3.3.2.
+A from clause in an SQL query can have multiple relations combined using natural
+join, as shown here:
+select A1, A2, …, An
+from r1 natural join r2 natural join ... natural join rm
+where P;
+More generally, a from clause can be of the form
+2As a consequence, it may not be possible in some systems to use attribute names containing the original relation
+names, for instance, student.ID or takes.ID, to refer to attributes in the natural join result. While some systems allow
+it, others don’t, and some allow it for all attributes except the join attributes (i.e., those that appear in both relation
+schemas). We can, however, use attribute names such asname and course
+ id without the relation names.
+4.1 Join Expressions 129
+from E1, E2,. . . , En
+where each Ei can be a single relation or an expression involving natural joins. For
+example, suppose we wish to answer the query “List the names of students along with
+the titles of courses that they have taken.” The query can be written inSQL as follows:
+select name, title
+from student natural join takes, course
+where takes.course
+ id =course.course
+ id;
+The natural join ofstudent and takes is ﬁrst computed, as we saw earlier, and a Cartesian
+product of this result with course is computed, from which the where clause extracts
+only those tuples where the course identiﬁer from the join result matches the course
+identiﬁer from the course relation. Note that takes.course
+ id in the where clause refers
+to the course
+ id ﬁeld of the natural join result, since this ﬁeld, in turn, came from the
+takes relation.
+In contrast, the following SQL query does not compute the same result:
+select name, title
+from student natural join takes natural join course;
+To see why, note that the natural join of student and takes contains the attributes (ID,
+name, dept
+ name, tot
+ cred, course
+ id, sec
+ id), while the course relation contains the at-
+tributes (course
+ id, title, dept
+ name, credits). As a result, the natural join would require
+that the dept
+ name attribute values from the two relations be the same in addition to
+requiring that the course
+ id values be the same. This query would then omit all (stu-
+dent name, course title) pairs where the student takes a course in a department other
+than the student’s own department. The previous query, on the other hand, correctly
+outputs such pairs.
+To provide the beneﬁt of natural join while avoiding the danger of equating at-
+tributes erroneously, SQL provides a form of the natural join construct that allows you
+to specify exactly which columns should be equated. This feature is illustrated by the
+following query:
+select name, title
+from (student natural join takes) join course using (course
+ id);
+The operation join … using requires a list of attribute names to be speciﬁed. Both
+relations being joined must have attributes with the speciﬁed names. Consider the op-
+eration r1 join r2 using(A1, A2). The operation is similar tor1 natural join r2,e x c e p tt h a t
+ap a i ro ft u p l e st1 from r1 and t2 from r2 match if t1.A1 = t2.A1 and t1.A2 = t2.A2;e v e n
+if r1 and r2 both have an attribute named A3,i ti s not required that t1.A3 = t2.A3.
+130 Chapter 4 Intermediate SQL
+Thus, in the precedingSQL query, thejoin construct permits student.dept
+ name and
+course.dept
+ name to diﬀer, and the SQL query gives the correct answer.
+4.1.2 Join Conditions
+In Section 4.1.1, we saw how to express natural joins, and we saw the join … using
+clause, which is a form of natural join that requires values to match only on speciﬁed
+attributes. SQL supports another form of join, in which an arbitrary join condition can
+be speciﬁed.
+The on condition allows a general predicate over the relations being joined. This
+predicate is written like a where clause predicate except for the use of the keyword on
+rather than where.L i k et h eusing condition, the on condition appears at the end of the
+join expression.
+Consider the following query, which has a join expression containing the on con-
+dition:
+select *
+from student join takes on student.ID = takes.ID;
+The on condition above speciﬁes that a tuple from student matches a tuple from takes
+if their ID values are equal. The join expression in this case is almost the same as the
+join expression student natural join takes, since the natural join operation also requires
+that for a student tuple and a takes t u p l et om a t c h .T h eo n ed i ﬀ e r e n c ei st h a tt h er e s u l t
+has the ID attribute listed twice, in the join result, once for student and once for takes,
+even though their ID values must be the same.
+In fact, the preceding query is equivalent to the following query:
+select *
+from student, takes
+where student.ID = takes.ID;
+As we have seen earlier, the relation name is used to disambiguate the attribute nameID,
+and thus the two occurrences can be referred to asstudent.ID and takes.ID, respectively.
+A version of this query that displays the ID value only once is as follows:
+select student.ID as ID, name, dept
+ name, tot
+ cred,
+course
+ id, sec
+ id, semester, year, grade
+from student join takes on student.ID =takes.ID;
+The result of this query is exactly the same as the result of the natural join of student
+and takes, which we showed in Figure 4.3.
+The on condition can express any SQL predicate, and thus join expressions using
+the on condition can express a richer class of join conditions thannatural join.H o w e v e r ,
+4.1 Join Expressions 131
+as illustrated by our preceding example, a query using a join expression with an on
+condition can be replaced by an equivalent expression without the on condition, with
+the predicate in the on clause moved to the where clause. Thus, it may appear that the
+on condition is a redundant feature of SQL.
+However, there are two good reasons for introducing the on condition. First, we
+shall see shortly that for a kind of join called an outer join, on conditions do behave
+in a manner diﬀerent from where conditions. Second, an SQL query is often more
+readable by humans if the join condition is speciﬁed in the on clause and the rest of
+the conditions appear in the where clause.
+4.1.3 Outer Joins
+Suppose we wish to display a list of all students, displaying their ID,a n d name, dept
+name,a n d tot
+ cred, along with the courses that they have taken. The following SQL
+query may appear to retrieve the required information:
+select *
+from student natural join takes;
+Unfortunately, the above query does not work quite as intended. Suppose that there
+is some student who takes no courses. Then the tuple in the student relation for that
+particular student would not satisfy the condition of a natural join with any tuple in the
+takes relation, and that student’s data would not appear in the result. We would thus
+not see any information about students who have not taken any courses. For example,
+in the student and takes relations of Figure 4.1 and Figure 4.2, note that student Snow,
+with ID 70557, has not taken any courses. Snow appears in student,b u tS n o w ’ sID
+number does not appear in the ID column of takes. Thus, Snow does not appear in the
+result of the natural join.
+More generally, some tuples in either or both of the relations being joined may
+be “lost” in this way. The outer-join operation works in a manner similar to the join
+operations we have already studied, but it preserves those tuples that would be lost in
+a join by creating tuples in the result containing null values.
+For example, to ensure that the student named Snow from our earlier example ap-
+pears in the result, a tuple could be added to the join result with all attributes from the
+student relation set to the corresponding values for the student Snow, and all the remain-
+ing attributes which come from the takes relation, namely, course
+ id, sec
+ id, semester,
+and year,s e tt onull. Thus, the tuple for the student Snow is preserved in the result of
+the outer join.
+There are three forms of outer join:
+• The left outer join preserves tuples only in the relation named before (to the left
+of) the left outer join operation.
+132 Chapter 4 Intermediate SQL
+• The right outer join preserves tuples only in the relation named after (to the right
+of) the right outer join operation.
+• The full outer join preserves tuples in both relations.
+In contrast, the join operations we studied earlier that do not preserve nonmatched tu-
+ples are calledinner-join operations, to distinguish them from the outer-join operations.
+We now explain exactly how each form of outer join operates. We can compute
+the left outer-join operation as follows: First, compute the result of the inner join as
+before. Then, for every tuple t in the left-hand-side relation that does not match any
+tuple in the right-hand-side relation in the inner join, add a tuple r to the result of the
+join constructed as follows:
+• The attributes of tuple r that are derived from the left-hand-side relation are ﬁlled
+in with the values from tuple t.
+• The remaining attributes of r are ﬁlled with null values.
+Figure 4.4 shows the result of:
+select *
+from student natural left outer join takes;
+That result includes student Snow ( ID 70557), unlike the result of an inner join, but
+the tuple for Snow includes nulls for the attributes that appear only in the schema of
+the takes relation.3
+As another example of the use of the outer-join operation, we can write the query
+“Find all students who have not taken a course” as:
+select ID
+from student natural left outer join takes
+where course
+ id is null;
+The right outer join is symmetric to the left outer join. Tuples from the right-hand-
+side relation that do not match any tuple in the left-hand-side relation are padded with
+nulls and are added to the result of the right outer join. Thus, if we rewrite the preceding
+query using a right outer join and swapping the order in which we list the relations as
+follows:
+select *
+from takes natural right outer join student;
+we get the same result except for the order in which the attributes appear in the result
+(see Figure 4.5).
+3We show null values in tables using null, but most systems display null values as a blank ﬁeld.
+4.1 Join Expressions 133
+ID
+ name
+ dept
+ name
+ tot
+ cred
+ course
+ id
+ sec
+ id
+ semester
+ year
+ grade
+00128
+ Zhang
+ Comp. Sci.
+ 102
+ CS-101
+ 1
+ Fall
+ 2017
+ A
+00128
+ Zhang
+ Comp. Sci.
+ 102
+ CS-347
+ 1
+ Fall
+ 2017
+ A-
+12345
+ Shankar
+ Comp. Sci.
+ 32
+ CS-101
+ 1
+ Fall
+ 2017
+ C
+12345
+ Shankar
+ Comp. Sci.
+ 32
+ CS-190
+ 2
+ Spring
+ 2017
+ A
+12345
+ Shankar
+ Comp. Sci.
+ 32
+ CS-315
+ 1
+ Spring
+ 2018
+ A
+12345
+ Shankar
+ Comp. Sci.
+ 32
+ CS-347
+ 1
+ Fall
+ 2017
+ A
+19991
+ Brandt
+ History
+ 80
+ HIS-351
+ 1
+ Spring
+ 2018
+ B
+23121
+ Chavez
+ Finance
+ 110
+ FIN-201
+ 1
+ Spring
+ 2018
+ C+
+44553
+ Peltier
+ Physics
+ 56
+ PHY-101
+ 1
+ Fall
+ 2017
+ B-
+45678
+ Levy
+ Physics
+ 46
+ CS-101
+ 1
+ Fall
+ 2017
+ F
+45678
+ Levy
+ Physics
+ 46
+ CS-101
+ 1
+ Spring
+ 2018
+ B+
+45678
+ Levy
+ Physics
+ 46
+ CS-319
+ 1
+ Spring
+ 2018
+ B
+54321
+ Williams
+ Comp. Sci.
+ 54
+ CS-101
+ 1
+ Fall
+ 2017
+ A-
+54321
+ Williams
+ Comp. Sci.
+ 54
+ CS-190
+ 2
+ Spring
+ 2017
+ B+
+55739
+ Sanchez
+ Music
+ 38
+ MU-199
+ 1
+ Spring
+ 2018
+ A-
+70557
+ Snow
+ Physics
+ 0
+ null
+ null
+ null
+ null
+ null
+76543
+ Brown
+ Comp. Sci.
+ 58
+ CS-101
+ 1
+ Fall
+ 2017
+ A
+76543
+ Brown
+ Comp. Sci.
+ 58
+ CS-319
+ 2
+ Spring
+ 2018
+ A
+76653
+ Aoi
+ Elec. Eng.
+ 60
+ EE-181
+ 1
+ Spring
+ 2017
+ C
+98765
+ Bourikas
+ Elec. Eng.
+ 98
+ CS-101
+ 1
+ Fall
+ 2017
+ C-
+98765
+ Bourikas
+ Elec. Eng.
+ 98
+ CS-315
+ 1
+ Spring
+ 2018
+ B
+98988
+ Tanaka
+ Biology
+ 120
+ BIO-101
+ 1
+ Summer
+ 2017
+ A
+98988
+ Tanaka
+ Biology
+ 120
+ BIO-301
+ 1
+ Summer
+ 2018
+ null
+Figure 4.4 Result ofstudent natural left outer join takes.
+The full outer join is a combination of the left and right outer-join types. After the
+operation computes the result of the inner join, it extends with nulls those tuples from
+the left-hand-side relation that did not match with any from the right-hand-side relation
+and adds them to the result. Similarly, it extends with nulls those tuples from the right-
+hand-side relation that did not match with any tuples from the left-hand-side relation
+and adds them to the result. Said diﬀerently, full outer join is the union of a left outer
+join and the corresponding right outer join.4
+As an example of the use of full outer join, consider the following query: “Display
+a list of all students in the Comp. Sci. department, along with the course sections, if
+any, that they have taken in Spring 2017; all course sections from Spring 2017 must
+4In those systems, notably MySQL, that implement only left and right outer join, this is exactly how one has to write a
+full outer join.
+134 Chapter 4 Intermediate SQL
+ID
+ course
+ id
+ sec
+ id
+ semester
+ year
+ grade
+ name
+ dept
+ name
+ tot
+ cred
+00128
+ CS-101
+ 1
+ Fall
+ 2017
+ A
+ Zhang
+ Comp. Sci.
+ 102
+00128
+ CS-347
+ 1
+ Fall
+ 2017
+ A-
+ Zhang
+ Comp. Sci.
+ 102
+12345
+ CS-101
+ 1
+ Fall
+ 2017
+ C
+ Shankar
+ Comp. Sci.
+ 32
+12345
+ CS-190
+ 2
+ Spring
+ 2017
+ A
+ Shankar
+ Comp. Sci.
+ 32
+12345
+ CS-315
+ 1
+ Spring
+ 2018
+ A
+ Shankar
+ Comp. Sci.
+ 32
+12345
+ CS-347
+ 1
+ Fall
+ 2017
+ A
+ Shankar
+ Comp. Sci.
+ 32
+19991
+ HIS-351
+ 1
+ Spring
+ 2018
+ B
+ Brandt
+ History
+ 80
+23121
+ FIN-201
+ 1
+ Spring
+ 2018
+ C+
+ Chavez
+ Finance
+ 110
+44553
+ PHY-101
+ 1
+ Fall
+ 2017
+ B-
+ Peltier
+ Physics
+ 56
+45678
+ CS-101
+ 1
+ Fall
+ 2017
+ F
+ Levy
+ Physics
+ 46
+45678
+ CS-101
+ 1
+ Spring
+ 2018
+ B+
+ Levy
+ Physics
+ 46
+45678
+ CS-319
+ 1
+ Spring
+ 2018
+ B
+ Levy
+ Physics
+ 46
+54321
+ CS-101
+ 1
+ Fall
+ 2017
+ A-
+ Williams
+ Comp. Sci.
+ 54
+54321
+ CS-190
+ 2
+ Spring
+ 2017
+ B+
+ Williams
+ Comp. Sci.
+ 54
+55739
+ MU-199
+ 1
+ Spring
+ 2018
+ A-
+ Sanchez
+ Music
+ 38
+70557
+ null
+ null
+ null
+ null
+ null
+ Snow
+ Physics
+ 0
+76543
+ CS-101
+ 1
+ Fall
+ 2017
+ A
+ Brown
+ Comp. Sci.
+ 58
+76543
+ CS-319
+ 2
+ Spring
+ 2018
+ A
+ Brown
+ Comp. Sci.
+ 58
+76653
+ EE-181
+ 1
+ Spring
+ 2017
+ C
+ Aoi
+ Elec. Eng.
+ 60
+98765
+ CS-101
+ 1
+ Fall
+ 2017
+ C-
+ Bourikas
+ Elec. Eng.
+ 98
+98765
+ CS-315
+ 1
+ Spring
+ 2018
+ B
+ Bourikas
+ Elec. Eng.
+ 98
+98988
+ BIO-101
+ 1
+ Summer
+ 2017
+ A
+ Tanaka
+ Biology
+ 120
+98988
+ BIO-301
+ 1
+ Summer
+ 2018
+ null
+ Tanaka
+ Biology
+ 120
+Figure 4.5 The result oftakes natural right outer join student.
+be displayed, even if no student from the Comp. Sci. department has taken the course
+section.” This query can be written as:
+select *
+from (select *
+from student
+where dept
+ name =' C o m p .S c i . ' )
+n a t u r a lf u l lo u t e rj o i n
+(select *
+from takes
+where semester =' S p r i n g 'and year =2 0 1 7 ) ;
+The result appears in Figure 4.6.
+4.1 Join Expressions 135
+ID
+ name
+ dept
+ name
+ tot
+ cred
+ course
+ id
+ sec
+ id
+ semester
+ year
+ grade
+00128
+ Zhang
+ Comp. Sci.
+ 102
+ null
+ null
+ null
+ null
+ null
+12345
+ Shankar
+ Comp. Sci.
+ 32
+ CS-190
+ 2
+ Spring
+ 2017
+ A
+54321
+ Williams
+ Comp. Sci.
+ 54
+ CS-190
+ 2
+ Spring
+ 2017
+ B+
+76543
+ Brown
+ Comp. Sci.
+ 58
+ null
+ null
+ null
+ null
+ null
+76653
+ null
+ null
+ null
+ ECE-181
+ 1
+ Spring
+ 2017
+ C
+Figure 4.6 Result of full outer join example (see text).
+The on clause can be used with outer joins. The following query is identical to the
+ﬁrst query we saw using “student natural left outer join takes,” except that the attribute
+ID appears twice in the result.
+select *
+from student left outer join takes on student.ID = takes.ID;
+As we noted earlier, on and where behave diﬀerently for outer join. The reason
+for this is that outer join adds null-padded tuples only for those tuples that do not
+contribute to the result of the corresponding “inner” join. The on condition is part of
+the outer join speciﬁcation, but a where clause is not. In our example, the case of the
+student tuple for student “Snow” withID 70557, illustrates this distinction. Suppose we
+modify the preceding query by moving the on clause predicate to the where clause and
+instead using an on condition of true.5
+select *
+from student left outer join takes on true
+where student.ID = takes.ID;
+The earlier query, using the left outer join with the on condition, includes a tuple
+(70557, Snow, Physics, 0, null, null, null, null, null, null ) because there is no tuple
+in takes with ID = 70557. In the latter query, however, every tuple satisﬁes the join
+condition true, so no null-padded tuples are generated by the outer join. The outer join
+actually generates the Cartesian product of the two relations. Since there is no tuple
+in takes with ID = 70557, every time a tuple appears in the outer join with name =
+“Snow”, the values forstudent.ID and takes.ID must be diﬀerent, and such tuples would
+be eliminated by the where clause predicate. Thus, student Snow never appears in the
+result of the latter query.
+5Some systems do not allow the use of the Boolean constant true. To test this on those systems, use a tautology (i.e., a
+predicate that always evaluates to true), like “1=1”.
+136 Chapter 4 Intermediate SQL
+Note 4.1 SQL AND MULTISET RELATIONAL ALGEBRA - PART 4
+The relational algebra supports the left outer-join operation, denoted by ⟕θ,t h e
+right outer-join operation, denoted by ⟖θ, and the full outer-join operation, de-
+noted by ⟗θ. It also supports the natural join operation, denoted by⋈,a sw e l la s
+the natural join versions of the left, right and full outer-join operations, denoted
+by ⟕, ⟖,a n d⟗. The deﬁnitions of all these operations are identical to the def-
+initions of the corresponding operations in SQL, which we have seen in Section
+4.1.
+4.1.4 Join Types and Conditions
+To distinguish normal joins from outer joins, normal joins are calledinner joins in SQL.
+A join clause can thus specify inner join instead of outer join to specify that a normal
+join is to be used. The keywordinner is, however, optional. The default join type, when
+the join clause is used without the outer preﬁx, is the inner join.T h u s ,
+select *
+from student join takes using (ID);
+is equivalent to:
+select *
+from student inner join takes using (ID);
+Similarly, natural join is equivalent to natural inner join.
+Figure 4.7 shows a full list of the various types of join that we have discussed. As
+can be seen from the ﬁgure, any form of join (inner, left outer, right outer, or full outer)
+can be combined with any join condition (natural, using, or on).
+Join types
+inner join
+left outer join
+right outer join
+full outer join
+Join conditions
+natural
+on < predicate>
+using (A1, A2, . . .,An)
+Figure 4.7 Join types and join conditions.
