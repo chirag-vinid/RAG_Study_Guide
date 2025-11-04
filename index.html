@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes Publication Agent</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            color: white !important;
+            font-family: 'Orbitron', sans-serif !important;
+        }
+
+        body {
+            background-color: #2A3056;
+            background-image: 
+                repeating-linear-gradient(
+                    0deg, 
+                    transparent 0, transparent 49px, 
+                    rgba(103, 255, 242, 0.15) 50px
+                ),
+                repeating-linear-gradient(
+                    90deg, 
+                    transparent 0, transparent 49px, 
+                    rgba(67, 176, 175, 0.15) 50px
+                );
+            background-size: 50px 50px;
+            background-repeat: repeat;
+            background-position: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 60px auto;
+            padding: 60px 50px;
+            background-color: rgba(42, 48, 86, 0.98);
+            border-radius: 15px;
+            border: 3px solid rgba(103, 255, 242, 0.5);
+            box-shadow: 0 0 35px rgba(103, 255, 242, 0.37);
+        }
+
+        /* Page visibility control */
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .main-header {
+            color: #67FFF2 !important;
+            font-size: 4.5em;
+            font-weight: 900;
+            text-align: center;
+            text-shadow: 0 0 35px rgba(103, 255, 242, 0.56);
+            margin-bottom: 20px;
+        }
+
+        .subheader {
+            color: white !important;
+            font-size: 1.5em;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h3 {
+            color: #43B0AF !important;
+            font-size: 2.6em;
+            font-weight: 700;
+            border-bottom: 4px solid #294933;
+            padding-bottom: 10px;
+            margin-top: 50px;
+            margin-bottom: 18px;
+        }
+
+        .file-upload-container {
+            border: 3px dashed #294933;
+            padding: 25px;
+            border-radius: 12px;
+            background-color: rgba(56, 63, 102, 1);
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload-container:hover {
+            border-color: #43B0AF;
+        }
+
+        .file-upload-container input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            cursor: pointer;
+        }
+
+        .file-upload-label {
+            color: #67FFF2 !important;
+            font-size: 1.2em;
+            pointer-events: none;
+        }
+
+        .file-name {
+            color: #81EC86 !important;
+            font-size: 1em;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            color: #67FFF2 !important;
+            background-color: rgba(56, 63, 102, 1);
+            border: 2px solid #294933;
+            padding: 12px;
+            font-size: 1.4em;
+            border-radius: 8px;
+            resize: vertical;
+            margin-bottom: 20px;
+        }
+
+        textarea::placeholder {
+            font-family: 'Orbitron', sans-serif !important;
+            font-style: italic;
+            color: #67FFF2 !important;
+            opacity: 0.7;
+        }
+
+        .generate-button {
+            width: 100%;
+            padding: 20px;
+            color: #2A3056 !important;
+            background-color: #43B0AF !important;
+            font-size: 1.8em;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(67, 176, 175, 0.62);
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .generate-button:hover {
+            background-color: #5ac0bf !important;
+            box-shadow: 0 0 40px rgba(67, 176, 175, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .generate-button:active {
+            transform: translateY(0);
+        }
+
+        .alert {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-size: 1.2em;
+        }
+
+        .alert.error {
+            background-color: rgba(255, 50, 50, 0.2);
+            border: 2px solid #ff3232;
+            color: #ff8888 !important;
+        }
+
+        /* LOADING PAGE STYLES */
+        .loading-content {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .spinner {
+            border: 6px solid rgba(103, 255, 242, 0.2);
+            border-top: 6px solid #67FFF2;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #67FFF2 !important;
+            font-size: 1.8em;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .loading-details {
+            color: #43B0AF !important;
+            font-size: 1.2em;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .progress-dots {
+            color: #67FFF2 !important;
+            font-size: 2em;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        /* DOWNLOAD PAGE STYLES */
+        .download-content {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .success-icon {
+            font-size: 6em;
+            margin: 20px 0;
+            animation: scaleIn 0.5s ease-out;
+        }
+
+        @keyframes scaleIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .success-message {
+            color: #81EC86 !important;
+            font-size: 2em;
+            margin: 30px 0;
+        }
+
+        .guide-info {
+            color: white !important;
+            font-size: 1.3em;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: rgba(56, 63, 102, 0.8);
+            border-radius: 10px;
+            border: 2px solid #294933;
+        }
+
+        .download-button {
+            display: inline-block;
+            padding: 25px 50px;
+            color: #2A3056 !important;
+            background-color: #81EC86 !important;
+            font-size: 2em;
+            font-weight: 700;
+            text-decoration: none;
+            border-radius: 10px;
+            box-shadow: 0 0 35px rgba(129, 236, 134, 0.62);
+            transition: all 0.3s;
+            margin: 30px 0;
+            cursor: pointer;
+            border: none;
+        }
+
+        .download-button:hover {
+            background-color: #9affaa !important;
+            box-shadow: 0 0 45px rgba(129, 236, 134, 0.8);
+            transform: translateY(-3px);
+        }
+
+        .start-over-button {
+            display: inline-block;
+            padding: 15px 30px;
+            color: #67FFF2 !important;
+            background-color: transparent !important;
+            font-size: 1.2em;
+            font-weight: 400;
+            text-decoration: none;
+            border-radius: 8px;
+            border: 2px solid #67FFF2;
+            transition: all 0.3s;
+            margin: 10px;
+            cursor: pointer;
+        }
+
+        .start-over-button:hover {
+            background-color: rgba(103, 255, 242, 0.1) !important;
+            box-shadow: 0 0 20px rgba(103, 255, 242, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .main-header {
+                font-size: 2.5em;
+            }
+            .subheader {
+                font-size: 1.2em;
+            }
+            h3 {
+                font-size: 1.8em;
+            }
+            .container {
+                padding: 30px 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- PAGE 1: INPUT FORM -->
+        <div id="inputPage" class="page active">
+            <h1 class="main-header">🧠 AI BASED STUDY PLANNER</h1>
+            <p class="subheader">AUTOMATED RAG-POWERED STUDY GUIDE GENERATION</p>
+
+            <h3>1. INPUT SOURCE MATERIAL</h3>
+            <div class="file-upload-container" id="fileUploadContainer">
+                <input type="file" id="fileInput" accept=".pdf,.docx,.txt">
+                <div class="file-upload-label">
+                    UPLOAD LECTURE TRANSCRIPTS OR SLIDES (PDF, DOCX, TXT)
+                </div>
+                <div class="file-name" id="fileName"></div>
+            </div>
+
+            <h3>2. DEFINE SUMMARY QUERY</h3>
+            <textarea 
+                id="queryInput" 
+                placeholder="E.G., SUMMARIZE THE CONTENT INTO 5 CHAPTERS FOCUSING ON ALL BOLDED TERMS, OR CREATE A 10-QUESTION QUIZ."
+            ></textarea>
+
+            <button class="generate-button" id="generateButton">
+                🚀 GENERATE STUDY GUIDE
+            </button>
+
+            <div class="alert error" id="errorAlert" style="display: none;"></div>
+        </div>
+
+        <!-- PAGE 2: LOADING -->
+        <div id="loadingPage" class="page">
+            <div class="loading-content">
+                <h1 class="main-header">⚡ PROCESSING</h1>
+                <div class="spinner"></div>
+                <div class="loading-text" id="loadingText">RAG AGENT ANALYZING YOUR CONTENT...</div>
+                <div class="loading-details" id="loadingDetails"></div>
+                <div class="progress-dots" id="progressDots">...</div>
+            </div>
+        </div>
+
+        <!-- PAGE 3: DOWNLOAD -->
+        <div id="downloadPage" class="page">
+            <div class="download-content">
+                <h1 class="main-header">🧠 AI BASED STUDY PLANNER</h1>
+                <div class="success-icon">✅</div>
+                <div class="success-message">GENERATION COMPLETE!</div>
+                <div class="guide-info" id="guideInfo">
+                    Your study guide is ready for download
+                </div>
+                <a href="#" class="download-button" id="downloadButton">
+                    ⬇️ DOWNLOAD STUDY GUIDE
+                </a>
+                <br>
+                <button class="start-over-button" id="startOverButton">
+                    🔄 CREATE ANOTHER GUIDE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFile = null;
+        let generatedContent = null;
+
+        // Page navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        // File upload handling
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+
+        fileInput.addEventListener('change', (e) => {
+            uploadedFile = e.target.files[0];
+            if (uploadedFile) {
+                fileName.textContent = `Selected: ${uploadedFile.name}`;
+            }
+        });
+
+        // Generate button handling
+        const generateButton = document.getElementById('generateButton');
+        const queryInput = document.getElementById('queryInput');
+        const errorAlert = document.getElementById('errorAlert');
+
+        function showError(message) {
+            errorAlert.textContent = message;
+            errorAlert.style.display = 'block';
+        }
+
+        function hideError() {
+            errorAlert.style.display = 'none';
+        }
+
+        // Animated loading dots
+        function animateLoadingDots() {
+            const dotsElement = document.getElementById('progressDots');
+            let dots = 0;
+            return setInterval(() => {
+                dots = (dots + 1) % 4;
+                dotsElement.textContent = '.'.repeat(dots || 1);
+            }, 500);
+        }
+
+        async function generateStudyGuide() {
+            const query = queryInput.value.trim();
+
+            // Validation
+            if (!uploadedFile || !query) {
+                showError('🚨 SYSTEM ALERT: INITIATE FILE UPLOAD AND DEFINE QUERY TO PROCEED.');
+                return;
+            }
+
+            hideError();
+
+            // Switch to loading page
+            showPage('loadingPage');
+            
+            // Update loading details
+            document.getElementById('loadingDetails').textContent = 
+                `Processing: ${uploadedFile.name} | Query: "${query}"`;
+            
+            // Start loading animation
+            const dotsInterval = animateLoadingDots();
+
+            try {
+                // Create FormData for backend
+                const formData = new FormData();
+                formData.append('file', uploadedFile);
+                formData.append('query', query);
+
+                // Call Flask backend API
+                const response = await fetch('http://localhost:5000/api/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to generate study guide');
+                }
+
+                const result = await response.json();
+
+                // Stop loading animation
+                clearInterval(dotsInterval);
+
+                // Set up download link
+                const downloadUrl = `http://localhost:5000${result.download_url}`;
+                
+                document.getElementById('downloadButton').href = downloadUrl;
+                document.getElementById('downloadButton').download = result.filename;
+                document.getElementById('guideInfo').innerHTML = 
+                    `<strong>File:</strong> ${result.filename}<br><strong>Source:</strong> ${uploadedFile.name}<br><strong>Status:</strong> ${result.message}`;
+
+                // Switch to download page
+                showPage('downloadPage');
+
+            } catch (error) {
+                clearInterval(dotsInterval);
+                console.error('Error generating study guide:', error);
+                showPage('inputPage');
+                showError(`🚨 ERROR: ${error.message}`);
+            }
+        }
+
+        generateButton.addEventListener('click', generateStudyGuide);
+
+        // Start over button
+        document.getElementById('startOverButton').addEventListener('click', () => {
+            // Reset form
+            uploadedFile = null;
+            fileInput.value = '';
+            fileName.textContent = '';
+            queryInput.value = '';
+            hideError();
+            
+            // Go back to input page
+            showPage('inputPage');
+        });
+
+        // Allow Enter key to submit (Shift+Enter for new line in textarea)
+        queryInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                generateStudyGuide();
+            }
+        });
+    </script>
+</body>
+</html>
