@@ -45,7 +45,6 @@
             box-shadow: 0 0 35px rgba(103, 255, 242, 0.37);
         }
 
-        /* Page visibility control */
         .page {
             display: none;
         }
@@ -139,6 +138,13 @@
             opacity: 0.7;
         }
 
+        .field-label {
+            color: #81EC86 !important;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            display: block;
+        }
+
         .generate-button {
             width: 100%;
             padding: 20px;
@@ -177,7 +183,6 @@
             color: #ff8888 !important;
         }
 
-        /* LOADING PAGE STYLES */
         .loading-content {
             text-align: center;
             padding: 40px 0;
@@ -219,7 +224,6 @@
             margin: 20px 0;
         }
 
-        /* DOWNLOAD PAGE STYLES */
         .download-content {
             text-align: center;
             padding: 40px 0;
@@ -318,19 +322,20 @@
             <h1 class="main-header">🧠 AI BASED STUDY PLANNER</h1>
             <p class="subheader">AUTOMATED RAG-POWERED STUDY GUIDE GENERATION</p>
 
-            <h3>1. INPUT SOURCE MATERIAL</h3>
+            <h3>1. UPLOAD YOUR STUDY MATERIAL</h3>
             <div class="file-upload-container" id="fileUploadContainer">
                 <input type="file" id="fileInput" accept=".pdf,.docx,.txt">
                 <div class="file-upload-label">
-                    UPLOAD LECTURE TRANSCRIPTS OR SLIDES (PDF, DOCX, TXT)
+                    UPLOAD YOUR DOCUMENT (PDF, DOCX, TXT)
                 </div>
                 <div class="file-name" id="fileName"></div>
             </div>
 
-            <h3>2. DEFINE SUMMARY QUERY</h3>
+            <h3>2. DEFINE STUDY TOPICS</h3>
+            <label class="field-label">ENTER THE TOPIC(S) YOU WANT TO STUDY:</label>
             <textarea 
-                id="queryInput" 
-                placeholder="E.G., SUMMARIZE THE CONTENT INTO 5 CHAPTERS FOCUSING ON ALL BOLDED TERMS, OR CREATE A 10-QUESTION QUIZ."
+                id="topicInput" 
+                placeholder="E.G., PHOTOSYNTHESIS AND CELLULAR RESPIRATION, LINEAR ALGEBRA CONCEPTS, WORLD WAR II EVENTS, KEY TERMS AND DEFINITIONS"
             ></textarea>
 
             <button class="generate-button" id="generateButton">
@@ -361,7 +366,7 @@
                     Your study guide is ready for download
                 </div>
                 <a href="#" class="download-button" id="downloadButton">
-                    ⬇️ DOWNLOAD STUDY GUIDE
+                    ⬇️ DOWNLOAD STUDY GUIDE (.MD)
                 </a>
                 <br>
                 <button class="start-over-button" id="startOverButton">
@@ -373,7 +378,6 @@
 
     <script>
         let uploadedFile = null;
-        let generatedContent = null;
 
         // Page navigation
         function showPage(pageId) {
@@ -396,7 +400,7 @@
 
         // Generate button handling
         const generateButton = document.getElementById('generateButton');
-        const queryInput = document.getElementById('queryInput');
+        const topicInput = document.getElementById('topicInput');
         const errorAlert = document.getElementById('errorAlert');
 
         function showError(message) {
@@ -408,7 +412,6 @@
             errorAlert.style.display = 'none';
         }
 
-        // Animated loading dots
         function animateLoadingDots() {
             const dotsElement = document.getElementById('progressDots');
             let dots = 0;
@@ -419,11 +422,16 @@
         }
 
         async function generateStudyGuide() {
-            const query = queryInput.value.trim();
+            const topics = topicInput.value.trim();
 
             // Validation
-            if (!uploadedFile || !query) {
-                showError('🚨 SYSTEM ALERT: INITIATE FILE UPLOAD AND DEFINE QUERY TO PROCEED.');
+            if (!uploadedFile) {
+                showError('🚨 SYSTEM ALERT: PLEASE UPLOAD A DOCUMENT');
+                return;
+            }
+
+            if (!topics) {
+                showError('🚨 SYSTEM ALERT: PLEASE SPECIFY THE TOPICS YOU WANT TO STUDY');
                 return;
             }
 
@@ -433,19 +441,16 @@
             showPage('loadingPage');
             
             // Update loading details
-            document.getElementById('loadingDetails').textContent = 
-                `Processing: ${uploadedFile.name} | Query: "${query}"`;
+            let detailsText = `Processing: ${uploadedFile.name} | Topics: ${topics}`;
+            document.getElementById('loadingDetails').textContent = detailsText;
             
-            // Start loading animation
             const dotsInterval = animateLoadingDots();
 
             try {
-                // Create FormData for backend
                 const formData = new FormData();
                 formData.append('file', uploadedFile);
-                formData.append('query', query);
+                formData.append('topics', topics);
 
-                // Call Flask backend API
                 const response = await fetch('http://localhost:5000/api/generate', {
                     method: 'POST',
                     body: formData
@@ -458,18 +463,20 @@
 
                 const result = await response.json();
 
-                // Stop loading animation
                 clearInterval(dotsInterval);
 
-                // Set up download link
                 const downloadUrl = `http://localhost:5000${result.download_url}`;
                 
                 document.getElementById('downloadButton').href = downloadUrl;
                 document.getElementById('downloadButton').download = result.filename;
-                document.getElementById('guideInfo').innerHTML = 
-                    `<strong>File:</strong> ${result.filename}<br><strong>Source:</strong> ${uploadedFile.name}<br><strong>Status:</strong> ${result.message}`;
+                
+                let infoHtml = `<strong>File:</strong> ${result.filename}<br>`;
+                infoHtml += `<strong>Source:</strong> ${uploadedFile.name}<br>`;
+                infoHtml += `<strong>Topics:</strong> ${topics}<br>`;
+                infoHtml += `<strong>Chunks Processed:</strong> ${result.chunks_processed || 'N/A'}`;
+                
+                document.getElementById('guideInfo').innerHTML = infoHtml;
 
-                // Switch to download page
                 showPage('downloadPage');
 
             } catch (error) {
@@ -482,21 +489,16 @@
 
         generateButton.addEventListener('click', generateStudyGuide);
 
-        // Start over button
         document.getElementById('startOverButton').addEventListener('click', () => {
-            // Reset form
             uploadedFile = null;
             fileInput.value = '';
             fileName.textContent = '';
-            queryInput.value = '';
+            topicInput.value = '';
             hideError();
-            
-            // Go back to input page
             showPage('inputPage');
         });
 
-        // Allow Enter key to submit (Shift+Enter for new line in textarea)
-        queryInput.addEventListener('keydown', (e) => {
+        topicInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 generateStudyGuide();
