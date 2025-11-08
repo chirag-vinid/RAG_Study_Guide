@@ -17,9 +17,10 @@ import os
 from datetime import datetime
 import traceback
 
-# Import the RAG pipeline and Gemini generator
+# Import the RAG pipeline, Gemini generator, and PDF converter
 from main_rag import RAGPipeline
 from gemini_generator import generate_study_content_with_gemini
+from pdf_converter import convert_markdown_to_pdf
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
@@ -192,11 +193,11 @@ def generate_study_guide():
         )
         print("[Flask] Gemini content generation complete")
         
-        # Create markdown study guide with Gemini content
-        output_filename = f"study_guide_{timestamp}.md"
-        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        # Create markdown study guide with Gemini content (temporary)
+        output_filename_md = f"study_guide_{timestamp}.md"
+        output_path_md = os.path.join(app.config['OUTPUT_FOLDER'], output_filename_md)
         
-        print("[Flask] Creating markdown study guide...")
+        print("[Flask] Creating temporary markdown file...")
         create_study_guide_markdown_with_gemini(
             gemini_content=gemini_content,
             metadata={
@@ -205,18 +206,55 @@ def generate_study_guide():
                 'total_chunks': result['total_chunks'],
                 'relevant_count': result['relevant_count']
             },
-            output_path=output_path
+            output_path=output_path_md
         )
         
-        print(f"[Flask] Study guide generated successfully: {output_filename}")
+        # Convert markdown to PDF
+        print("[Flask] Converting markdown to PDF...")
+        output_filename_pdf = f"study_guide_{timestamp}.pdf"
+        output_path_pdf = os.path.join(app.config['OUTPUT_FOLDER'], output_filename_pdf)
+        
+        pdf_result = convert_markdown_to_pdf(
+            markdown_file=output_path_md,
+            output_pdf=output_path_pdf,
+            metadata={
+                'title': f'Study Guide: {topics}',
+                'author': 'AI Study Planner',
+                'date': datetime.now().strftime('%B %d, %Y')
+            }
+        )
+        
+        if not pdf_result['success']:
+            # If PDF conversion fails, return markdown file instead
+            print(f"[Flask] ⚠️ PDF conversion failed: {pdf_result['error']}")
+            print(f"[Flask] Returning markdown file instead")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Study guide generated (PDF conversion unavailable, returning markdown)',
+                'filename': output_filename_md,
+                'download_url': f'/api/download/{output_filename_md}',
+                'chunks_processed': result['total_chunks'],
+                'relevant_chunks': result['relevant_count'],
+                'warning': pdf_result['error']
+            }), 200
+        
+        # PDF conversion successful - remove temporary markdown file
+        try:
+            os.remove(output_path_md)
+            print(f"[Flask] Removed temporary markdown file")
+        except:
+            pass
+        
+        print(f"[Flask] Study guide PDF generated successfully: {output_filename_pdf}")
         print("="*80 + "\n")
         
         # Return success response
         return jsonify({
             'success': True,
-            'message': 'Study guide generated successfully with AI',
-            'filename': output_filename,
-            'download_url': f'/api/download/{output_filename}',
+            'message': 'Study guide PDF generated successfully with AI',
+            'filename': output_filename_pdf,
+            'download_url': f'/api/download/{output_filename_pdf}',
             'chunks_processed': result['total_chunks'],
             'relevant_chunks': result['relevant_count']
         }), 200
@@ -240,7 +278,7 @@ def download_file(filename):
             file_path,
             as_attachment=True,
             download_name=filename,
-            mimetype='text/markdown'
+            mimetype='application/pdf' if filename.endswith('.pdf') else 'text/markdown'
         )
         
     except Exception as e:

@@ -68,7 +68,7 @@ def generate_study_content_with_gemini(relevant_chunks: list, topics: str, custo
     # Default prompt (YOU CAN MODIFY THIS)
     if not custom_prompt:
         custom_prompt = f"""
-You are an expert study guide creator. Based on the provided study material and topics, create a comprehensive, well-structured study guide.
+You are an expert study guide creator. Based on the provided study material and topics, create a comprehensive, well-structured study guide that will be converted to PDF.
 
 **Topics to focus on:** {topics}
 
@@ -77,15 +77,23 @@ You are an expert study guide creator. Based on the provided study material and 
 
 **Instructions:**
 1. Create a detailed study guide focusing ONLY on the topics: {topics}
-2. Structure the content with clear headings and subheadings
+2. Structure the content with clear headings and subheadings using proper markdown hierarchy
 3. Include key concepts, definitions, and important points
 4. Add examples where relevant
 5. Organize information in a logical, easy-to-study format
 6. Use bullet points and numbered lists for clarity
 7. Highlight critical information that students should memorize
 8. If applicable, add practice questions or review points at the end
+9. **IMPORTANT**: Format everything in clean Markdown suitable for PDF conversion:
+   - Use proper heading hierarchy (# for title, ## for main sections, ### for subsections)
+   - Use **bold** for emphasis, *italic* for secondary emphasis
+   - Use bullet points (-) and numbered lists (1., 2., 3.)
+   - Use code blocks with ``` for any code or technical content
+   - Use > for important quotes or callouts
+   - Keep paragraphs well-spaced
+   - Avoid emojis or special characters that may not render in PDF
 
-**Format your response in Markdown with proper headings (##, ###, etc.)**
+**Format your response in clean, PDF-ready Markdown starting with a title.**
 
 Generate the study guide now:
 """
